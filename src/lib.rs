@@ -26,13 +26,14 @@ impl Router {
 
     pub fn serve(
         &self,
-        req: Request<Body>,
+        mut req: Request<Body>,
     ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>> {
         match self.inner.get(req.method()) {
             Some(inner_router) => match inner_router.recognize(req.uri().path()) {
                 Ok(matcher) => {
                     let handler = matcher.handler();
-                    let _params = matcher.params();
+                    let params = matcher.params().clone();
+                    req.extensions_mut().insert(Params(Box::new(params)));
                     handler.call(req)
                 }
                 Err(_) => Box::pin(async {
@@ -106,5 +107,13 @@ impl<T> Service<T> for MakeRouterService {
 
     fn call(&mut self, _req: T) -> Self::Future {
         futures_util::future::ok(self.0.clone())
+    }
+}
+
+pub struct Params(Box<route_recognizer::Params>);
+
+impl Params {
+    pub fn find(&self, key: &str) -> Option<&str> {
+        self.0.find(key)
     }
 }
