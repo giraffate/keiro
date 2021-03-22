@@ -25,10 +25,47 @@ impl Router {
         }
     }
 
+    /// Register a handler for GET requests
     pub fn get(&mut self, path: &str, handler: impl Handler) {
         let entry = self
             .inner
             .entry(Method::GET)
+            .or_insert_with(InnerRouter::new);
+        entry.add(path, Box::new(handler));
+    }
+
+    /// Register a handler for POST requests
+    pub fn post(&mut self, path: &str, handler: impl Handler) {
+        let entry = self
+            .inner
+            .entry(Method::POST)
+            .or_insert_with(InnerRouter::new);
+        entry.add(path, Box::new(handler));
+    }
+
+    /// Register a handler for PUT requests
+    pub fn put(&mut self, path: &str, handler: impl Handler) {
+        let entry = self
+            .inner
+            .entry(Method::PUT)
+            .or_insert_with(InnerRouter::new);
+        entry.add(path, Box::new(handler));
+    }
+
+    /// Register a handler for DELETE requests
+    pub fn delete(&mut self, path: &str, handler: impl Handler) {
+        let entry = self
+            .inner
+            .entry(Method::DELETE)
+            .or_insert_with(InnerRouter::new);
+        entry.add(path, Box::new(handler));
+    }
+
+    /// Register a handler for PATCH requests
+    pub fn patch(&mut self, path: &str, handler: impl Handler) {
+        let entry = self
+            .inner
+            .entry(Method::PATCH)
             .or_insert_with(InnerRouter::new);
         entry.add(path, Box::new(handler));
     }
