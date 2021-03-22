@@ -12,6 +12,12 @@ pub struct Router {
     inner: HashMap<Method, InnerRouter<Box<dyn Handler>>>,
 }
 
+impl Default for Router {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Router {
     pub fn new() -> Self {
         Self {
@@ -20,7 +26,10 @@ impl Router {
     }
 
     pub fn get(&mut self, path: &str, handler: impl Handler) {
-        let entry = self.inner.entry(Method::GET).or_insert(InnerRouter::new());
+        let entry = self
+            .inner
+            .entry(Method::GET)
+            .or_insert_with(InnerRouter::new);
         entry.add(path, Box::new(handler));
     }
 
