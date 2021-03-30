@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -8,6 +9,7 @@ use hyper::service::Service;
 use hyper::{Body, Method, Request, Response};
 use route_recognizer::Router as InnerRouter;
 
+#[derive(Debug)]
 pub struct Router {
     inner: HashMap<Method, InnerRouter<Box<dyn Handler>>>,
 }
@@ -114,6 +116,12 @@ where
         req: Request<Body>,
     ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>> {
         Box::pin(self(req))
+    }
+}
+
+impl fmt::Debug for dyn Handler {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "keiro::Handler")
     }
 }
 
