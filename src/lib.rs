@@ -94,8 +94,10 @@ impl Router {
         }
     }
 
-    pub fn into_service(self) -> MakeRouterService {
-        MakeRouterService(RouterService::new(self))
+    pub fn into_service(self) -> MakeRouterService<RouterService> {
+        MakeRouterService {
+            inner: RouterService::new(self),
+        }
     }
 }
 
@@ -143,15 +145,23 @@ impl Service<Request<Body>> for RouterService {
 }
 
 impl RouterService {
-    fn new(router: Router) -> Self {
+    pub fn new(router: Router) -> Self {
         Self(Arc::new(router))
     }
 }
 
-pub struct MakeRouterService(RouterService);
+pub struct MakeRouterService<Svc> {
+    pub inner: Svc,
+}
 
-impl<T> Service<T> for MakeRouterService {
-    type Response = RouterService;
+impl<T, Svc> Service<T> for MakeRouterService<Svc>
+where
+    Svc: Service<Request<Body>> + Clone,
+    Svc::Response: 'static,
+    Svc::Error: Into<Box<dyn std::error::Error + Send + Sync>> + 'static,
+    Svc::Future: 'static,
+{
+    type Response = Svc;
     type Error = hyper::Error;
     type Future = futures_util::future::Ready<Result<Self::Response, Self::Error>>;
 
@@ -160,7 +170,7 @@ impl<T> Service<T> for MakeRouterService {
     }
 
     fn call(&mut self, _req: T) -> Self::Future {
-        futures_util::future::ok(self.0.clone())
+        futures_util::future::ok(self.inner.clone())
     }
 }
 
