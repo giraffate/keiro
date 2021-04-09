@@ -1,10 +1,14 @@
 [package]
 name = "keiro"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Takayuki Nakata <f.seasons017@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "A lightweight router for Rust HTTP services."
+repository = "https://github.com/giraffate/keiro"
+readme = "README.md"
+keiwords = ["router", "http", "web", "hyper", "routing"]
+documentation = "https://docs.rs/keiro"
 
 [dependencies]
 hyper = { version = "0.14", features = ["full"]}
