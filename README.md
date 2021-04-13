@@ -3,6 +3,7 @@ Keiro is a lightweight router for Rust HTTP services. It is based on [hyper](htt
 
 ## Usage
 ```rust
+use std::error::Error;
 use std::net::SocketAddr;
 
 use hyper::{Body, Request, Response, Server};
@@ -22,11 +23,11 @@ async fn main() {
         .unwrap();
 }
 
-async fn index(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+async fn index(_req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
     Ok(Response::new(Body::from("Hello keiro!")))
 }
 
-async fn hello(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+async fn hello(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
     let params = req.extensions().get::<Params>().unwrap();
     Ok(Response::new(Body::from(format!(
         "Hello {} from {}!",
@@ -35,7 +36,7 @@ async fn hello(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     ))))
 }
 
-async fn hi(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+async fn hi(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
     let params = req.extensions().get::<Params>().unwrap();
     Ok(Response::new(Body::from(format!(
         "Hello {}!",
