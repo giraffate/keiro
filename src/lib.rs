@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
@@ -75,7 +76,11 @@ impl Router {
     pub fn serve(
         &self,
         mut req: Request<Body>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>> {
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Response<Body>, Box<dyn Error + Send + Sync>>> + Send + Sync,
+        >,
+    > {
         match self.inner.get(req.method()) {
             Some(inner_router) => match inner_router.recognize(req.uri().path()) {
                 Ok(matcher) => {
@@ -105,18 +110,29 @@ pub trait Handler: Send + Sync + 'static {
     fn call(
         &self,
         req: Request<Body>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>>;
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Response<Body>, Box<dyn Error + Send + Sync>>> + Send + Sync,
+        >,
+    >;
 }
 
 impl<F: Send + Sync + 'static, R> Handler for F
 where
     F: Fn(Request<Body>) -> R + Send + Sync,
-    R: Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync + 'static,
+    R: Future<Output = Result<Response<Body>, Box<dyn Error + Send + Sync>>>
+        + Send
+        + Sync
+        + 'static,
 {
     fn call(
         &self,
         req: Request<Body>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>> {
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Response<Body>, Box<dyn Error + Send + Sync>>> + Send + Sync,
+        >,
+    > {
         Box::pin(self(req))
     }
 }
@@ -132,8 +148,12 @@ pub struct RouterService(Arc<Router>);
 
 impl Service<Request<Body>> for RouterService {
     type Response = Response<Body>;
-    type Error = hyper::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>>;
+    type Error = Box<dyn Error + Send + Sync>;
+    type Future = Pin<
+        Box<
+            dyn Future<Output = Result<Response<Body>, Box<dyn Error + Send + Sync>>> + Send + Sync,
+        >,
+    >;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -158,11 +178,11 @@ impl<T, Svc> Service<T> for MakeRouterService<Svc>
 where
     Svc: Service<Request<Body>> + Clone,
     Svc::Response: 'static,
-    Svc::Error: Into<Box<dyn std::error::Error + Send + Sync>> + 'static,
+    Svc::Error: Into<Box<dyn Error + Send + Sync>> + 'static,
     Svc::Future: 'static,
 {
     type Response = Svc;
-    type Error = hyper::Error;
+    type Error = Box<dyn Error + Send + Sync>;
     type Future = futures_util::future::Ready<Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {

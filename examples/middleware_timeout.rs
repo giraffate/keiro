@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::future::Future;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -16,7 +17,7 @@ async fn main() {
     router.get("/", index);
 
     let svc = keiro::RouterService::new(router);
-    let svc = Timeout::new(svc, Duration::from_secs(10));
+    let svc = Timeout::new(svc, Duration::from_secs(3));
 
     Server::bind(&addr)
         .serve(keiro::MakeRouterService { inner: svc })
@@ -24,7 +25,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn index(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+async fn index(_req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
     sleep(tokio::time::Duration::from_secs(5)).await;
     Ok(Response::new(Body::from("Hello keiro!")))
 }
@@ -45,12 +46,18 @@ impl<Svc> Service<Request<Body>> for Timeout<Svc>
 where
     Svc: Service<Request<Body>> + Clone,
     Svc::Response: Into<Response<Body>> + Send + Sync + 'static,
-    Svc::Error: Into<hyper::Error> + Send + Sync + 'static,
+    Svc::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send + Sync + 'static,
     Svc::Future: Send + Sync + 'static,
 {
     type Response = Response<Body>;
-    type Error = hyper::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Response<Body>, hyper::Error>> + Send + Sync>>;
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Future = Pin<
+        Box<
+            dyn Future<Output = Result<Response<Body>, Box<dyn std::error::Error + Send + Sync>>>
+                + Send
+                + Sync,
+        >,
+    >;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -66,9 +73,20 @@ where
                     res.map(|v| v.into()).map_err(|err| err.into())
                 },
                 _ = timeout => {
-                    Ok(Response::builder().status(500).body(Body::empty()).unwrap())
+                    Err(Box::new(Expired) as Box<dyn Error + Send + Sync>)
                 },
             }
         })
     }
 }
+
+#[derive(Debug)]
+pub struct Expired;
+
+impl std::fmt::Display for Expired {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "expired")
+    }
+}
+
+impl Error for Expired {}
