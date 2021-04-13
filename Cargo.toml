@@ -7,7 +7,7 @@ license = "MIT"
 description = "A lightweight router for Rust HTTP services."
 repository = "https://github.com/giraffate/keiro"
 readme = "README.md"
-keiwords = ["router", "http", "web", "hyper", "routing"]
+keywords = ["router", "http", "web", "hyper", "routing"]
 documentation = "https://docs.rs/keiro"
 
 [dependencies]
