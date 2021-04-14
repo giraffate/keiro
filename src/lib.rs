@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
@@ -10,7 +10,20 @@ use hyper::service::Service;
 use hyper::{Body, Method, Request, Response};
 use route_recognizer::Router as InnerRouter;
 
-pub type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+pub type Result<T> = std::result::Result<T, Box<dyn StdError + Send + Sync>>;
+
+#[derive(Debug)]
+pub struct Error {
+    inner: String,
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+
+impl StdError for Error {}
 
 #[derive(Debug)]
 pub struct Router {
@@ -87,8 +100,8 @@ impl Router {
                     req.extensions_mut().insert(Params(Box::new(params)));
                     handler.call(req)
                 }
-                Err(_) => Box::pin(async {
-                    Ok(Response::builder().status(404).body(Body::empty()).unwrap())
+                Err(e) => Box::pin(async {
+                    Err(Box::new(Error { inner: e }) as Box<dyn StdError + Send + Sync>)
                 }),
             },
             None => {
@@ -135,7 +148,7 @@ pub struct RouterService(Arc<Router>);
 
 impl Service<Request<Body>> for RouterService {
     type Response = Response<Body>;
-    type Error = Box<dyn Error + Send + Sync>;
+    type Error = Box<dyn StdError + Send + Sync>;
     type Future = Pin<Box<dyn Future<Output = Result<Response<Body>>> + Send + Sync>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<()>> {
@@ -161,11 +174,11 @@ impl<T, Svc> Service<T> for MakeRouterService<Svc>
 where
     Svc: Service<Request<Body>> + Clone,
     Svc::Response: 'static,
-    Svc::Error: Into<Box<dyn Error + Send + Sync>> + 'static,
+    Svc::Error: Into<Box<dyn StdError + Send + Sync>> + 'static,
     Svc::Future: 'static,
 {
     type Response = Svc;
-    type Error = Box<dyn Error + Send + Sync>;
+    type Error = Box<dyn StdError + Send + Sync>;
     type Future = futures_util::future::Ready<Result<Self::Response>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<()>> {
@@ -173,6 +186,7 @@ where
     }
 
     fn call(&mut self, _req: T) -> Self::Future {
+        // TODO: address err
         futures_util::future::ok(self.inner.clone())
     }
 }

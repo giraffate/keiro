@@ -67,7 +67,9 @@ where
                     res.map(|v| v.into()).map_err(|err| err.into())
                 },
                 _ = timeout => {
-                    Err(Box::new(Expired) as Box<dyn Error + Send + Sync>)
+                    // TODO
+                    // Err(Box::new(Expired) as Box<dyn Error + Send + Sync>)
+                    Ok(Response::builder().status(500).body(Body::empty()).unwrap())
                 },
             }
         })
