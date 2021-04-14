@@ -51,13 +51,7 @@ where
 {
     type Response = Response<Body>;
     type Error = Box<dyn std::error::Error + Send + Sync>;
-    type Future = Pin<
-        Box<
-            dyn Future<Output = Result<Response<Body>, Box<dyn std::error::Error + Send + Sync>>>
-                + Send
-                + Sync,
-        >,
-    >;
+    type Future = Pin<Box<dyn Future<Output = keiro::Result<Response<Body>>> + Send + Sync>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))

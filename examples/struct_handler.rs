@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::future::Future;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -29,11 +28,7 @@ impl Handler for IndexHandler {
     fn call(
         &self,
         _req: Request<Body>,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Response<Body>, Box<dyn Error + Send + Sync>>> + Send + Sync,
-        >,
-    > {
+    ) -> Pin<Box<dyn Future<Output = keiro::Result<Response<Body>>> + Send + Sync>> {
         let message = self.message.clone();
         Box::pin(async { Ok(Response::new(Body::from(message))) })
     }
