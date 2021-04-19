@@ -100,8 +100,8 @@ impl Router {
                     req.extensions_mut().insert(Params(Box::new(params)));
                     handler.call(req)
                 }
-                Err(e) => Box::pin(async {
-                    Err(Box::new(Error { inner: e }) as Box<dyn StdError + Send + Sync>)
+                Err(_) => Box::pin(async {
+                    Ok(Response::builder().status(404).body(Body::empty()).unwrap())
                 }),
             },
             None => {
@@ -186,7 +186,6 @@ where
     }
 
     fn call(&mut self, _req: T) -> Self::Future {
-        // TODO: address err
         futures_util::future::ok(self.inner.clone())
     }
 }

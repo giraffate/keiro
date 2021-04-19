@@ -67,22 +67,9 @@ where
                     res.map(|v| v.into()).map_err(|err| err.into())
                 },
                 _ = timeout => {
-                    // TODO
-                    // Err(Box::new(Expired) as Box<dyn Error + Send + Sync>)
-                    Ok(Response::builder().status(500).body(Body::empty()).unwrap())
+                    Ok(Response::builder().status(500).body(Body::from("expired")).unwrap())
                 },
             }
         })
     }
 }
-
-#[derive(Debug)]
-pub struct Expired;
-
-impl std::fmt::Display for Expired {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "expired")
-    }
-}
-
-impl Error for Expired {}
