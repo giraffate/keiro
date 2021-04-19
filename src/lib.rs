@@ -28,6 +28,7 @@ impl StdError for Error {}
 #[derive(Debug)]
 pub struct Router {
     inner: HashMap<Method, InnerRouter<Box<dyn Handler>>>,
+    not_found: Option<Box<dyn Handler>>,
 }
 
 impl Default for Router {
@@ -40,6 +41,7 @@ impl Router {
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
+            not_found: None,
         }
     }
 
@@ -88,6 +90,11 @@ impl Router {
         entry.add(path, Box::new(handler));
     }
 
+    /// Register a handler when no routes are matched
+    pub fn not_found(&mut self, handler: impl Handler) {
+        self.not_found = Some(Box::new(handler));
+    }
+
     pub fn serve(
         &self,
         mut req: Request<Body>,
@@ -100,9 +107,12 @@ impl Router {
                     req.extensions_mut().insert(Params(Box::new(params)));
                     handler.call(req)
                 }
-                Err(_) => Box::pin(async {
-                    Ok(Response::builder().status(404).body(Body::empty()).unwrap())
-                }),
+                Err(_) => match &self.not_found {
+                    Some(handler) => handler.call(req),
+                    None => Box::pin(async {
+                        Ok(Response::builder().status(404).body(Body::empty()).unwrap())
+                    }),
+                },
             },
             None => {
                 Box::pin(async { Ok(Response::builder().status(404).body(Body::empty()).unwrap()) })
