@@ -2,6 +2,7 @@ use std::error::Error;
 use std::net::SocketAddr;
 
 use hyper::{Body, Request, Response, Server};
+use keiro::prelude::*;
 use keiro::{Params, Router};
 
 #[tokio::main]
@@ -32,7 +33,7 @@ async fn hello(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Sen
 }
 
 async fn hi(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
-    let params = req.extensions().get::<Params>().unwrap();
+    let params = req.params().unwrap();
     Ok(Response::new(Body::from(format!(
         "Hello {}!",
         params.find("path").unwrap(),
