@@ -17,3 +17,6 @@ futures-util = "0.3.13"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+tower-http = { git = "https://github.com/tower-rs/tower-http", branch = "master", features = ["full"] }
+tower = { version = "0.4.8", features = ["full"] }
+tracing-subscriber = "0.2"
