@@ -13,22 +13,40 @@ use hyper::service::Service;
 use hyper::{Body, Method, Request, Response};
 use route_recognizer::Router as InnerRouter;
 
-pub struct Router<E> {
+pub struct Router<E, State> {
     inner: HashMap<Method, InnerRouter<Box<dyn Handler<E>>>>,
     not_found: Option<Box<dyn Handler<E>>>,
+    state: State,
 }
 
-impl<E: Into<Box<dyn Error + Send + Sync>> + 'static> Default for Router<E> {
+impl<E> Default for Router<E, ()>
+where
+    E: Into<Box<dyn Error + Send + Sync>> + 'static,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E: Into<Box<dyn Error + Send + Sync>> + 'static> Router<E> {
+impl<E> Router<E, ()>
+where
+    E: Into<Box<dyn Error + Send + Sync>> + 'static,
+{
     pub fn new() -> Self {
+        Router::with_state(())
+    }
+}
+
+impl<E, State> Router<E, State>
+where
+    E: Into<Box<dyn Error + Send + Sync>> + 'static,
+    State: Clone + Send + Sync + 'static,
+{
+    pub fn with_state(state: State) -> Self {
         Self {
             inner: HashMap::new(),
             not_found: None,
+            state,
         }
     }
 
@@ -130,6 +148,7 @@ impl<E: Into<Box<dyn Error + Send + Sync>> + 'static> Router<E> {
                     let handler = matcher.handler();
                     let params = matcher.params().clone();
                     req.extensions_mut().insert(Params(Box::new(params)));
+                    req.extensions_mut().insert(self.state.clone());
                     handler.call(req)
                 }
                 Err(_) => match &self.not_found {
@@ -145,7 +164,7 @@ impl<E: Into<Box<dyn Error + Send + Sync>> + 'static> Router<E> {
         }
     }
 
-    pub fn into_service(self) -> MakeRouterService<RouterService<E>> {
+    pub fn into_service(self) -> MakeRouterService<RouterService<E, State>> {
         MakeRouterService {
             inner: RouterService::new(self),
         }
@@ -180,9 +199,13 @@ impl<E> fmt::Debug for dyn Handler<E> {
 }
 
 #[derive(Clone)]
-pub struct RouterService<E: Into<Box<dyn Error + Send + Sync>> + 'static>(Arc<Router<E>>);
+pub struct RouterService<E, State>(Arc<Router<E, State>>);
 
-impl<E: Into<Box<dyn Error + Send + Sync>> + 'static> Service<Request<Body>> for RouterService<E> {
+impl<E, State> Service<Request<Body>> for RouterService<E, State>
+where
+    E: Into<Box<dyn Error + Send + Sync>> + 'static,
+    State: Clone + Send + Sync + 'static,
+{
     type Response = Response<Body>;
     type Error = Box<dyn Error + Send + Sync>;
     #[allow(clippy::type_complexity)]
@@ -200,8 +223,12 @@ impl<E: Into<Box<dyn Error + Send + Sync>> + 'static> Service<Request<Body>> for
     }
 }
 
-impl<E: Into<Box<dyn Error + Send + Sync>>> RouterService<E> {
-    pub fn new(router: Router<E>) -> Self {
+impl<E, State> RouterService<E, State>
+where
+    E: Into<Box<dyn Error + Send + Sync>> + 'static,
+    State: Clone + Send + Sync + 'static,
+{
+    pub fn new(router: Router<E, State>) -> Self {
         Self(Arc::new(router))
     }
 }
