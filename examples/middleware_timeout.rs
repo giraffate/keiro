@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::error::Error;
 use std::future::Future;
 use std::net::SocketAddr;
@@ -25,7 +26,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn index(_req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
+async fn index(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
     sleep(tokio::time::Duration::from_secs(5)).await;
     Ok(Response::new(Body::from("Hello keiro!")))
 }
@@ -46,12 +47,13 @@ impl<Svc> Service<Request<Body>> for Timeout<Svc>
 where
     Svc: Service<Request<Body>> + Clone,
     Svc::Response: Into<Response<Body>> + Send + Sync + 'static,
-    Svc::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send + Sync + 'static,
+    Svc::Error: Into<Box<dyn Error + Send + Sync>> + Send + Sync + 'static,
     Svc::Future: Send + Sync + 'static,
 {
     type Response = Response<Body>;
-    type Error = Box<dyn std::error::Error + Send + Sync>;
-    type Future = Pin<Box<dyn Future<Output = keiro::Result<Response<Body>>> + Send + Sync>>;
+    type Error = Box<dyn Error + Send + Sync>;
+    #[allow(clippy::type_complexity)]
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + Sync>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))

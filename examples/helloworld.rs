@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::convert::Infallible;
 use std::net::SocketAddr;
 
 use hyper::{Body, Request, Response, Server};
@@ -19,11 +19,11 @@ async fn main() {
         .unwrap();
 }
 
-async fn index(_req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
+async fn index(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
     Ok(Response::new(Body::from("Hello keiro!")))
 }
 
-async fn hello(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
+async fn hello(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let params = req.extensions().get::<Params>().unwrap();
     Ok(Response::new(Body::from(format!(
         "Hello {} from {}!",
@@ -32,7 +32,7 @@ async fn hello(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Sen
     ))))
 }
 
-async fn hi(req: Request<Body>) -> Result<Response<Body>, Box<dyn Error + Send + Sync>> {
+async fn hi(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let params = req.params().unwrap();
     Ok(Response::new(Body::from(format!(
         "Hello {}!",
