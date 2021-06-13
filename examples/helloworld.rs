@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 
 use hyper::{Body, Request, Response, Server};
 use keiro::prelude::*;
-use keiro::{Params, Router};
+use keiro::Router;
 
 #[tokio::main]
 async fn main() {
@@ -24,7 +24,7 @@ async fn index(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
 }
 
 async fn hello(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    let params = req.extensions().get::<Params>().unwrap();
+    let params = req.params().unwrap();
     Ok(Response::new(Body::from(format!(
         "Hello {} from {}!",
         params.find("user1").unwrap(),

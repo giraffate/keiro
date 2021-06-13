@@ -2,11 +2,12 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 
 use hyper::{Body, Request, Response, Server};
+use keiro::prelude::*;
 use keiro::Router;
 
 #[derive(Clone)]
 struct State {
-  name: String,
+    name: String,
 }
 
 #[tokio::main]
@@ -25,6 +26,6 @@ async fn main() {
 }
 
 async fn index(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    let state = req.extensions().get::<State>().unwrap();
+    let state = req.state::<State>().unwrap();
     Ok(Response::new(Body::from(format!("Hello {}", state.name))))
 }
