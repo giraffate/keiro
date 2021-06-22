@@ -46,6 +46,17 @@ async fn hi(req: Request<Body>) -> Result<Response<Body>, Infallible> {
 }
 ```
 
+### Routing
+
+This uses [`route-recognier`](https://github.com/http-rs/route-recognizer) and supports
+four kinds of route segments:
+- segments: these are of the format `/a/b`.
+- params: these are of the format `/a/:b`.
+- named wildcards: these are of the format `/a/*b`.
+- unnamed wildcards: these are of the format `/a/*`.
+
+See [here](https://docs.rs/route-recognizer/0.3.0/route_recognizer/#routing-params) for details.
+
 ## Contributing
 1. Fork
 2. Create a feature branch
