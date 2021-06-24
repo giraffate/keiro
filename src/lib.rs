@@ -1,3 +1,169 @@
+//! Keiro is a lightweight router for Rust HTTP services. It is based on [hyper](https://github.com/hyperium/hyper).
+//!
+//! ## Usage
+//! ```rust,no_run
+//! use std::convert::Infallible;
+//! use std::net::SocketAddr;
+//!
+//! use hyper::{Body, Request, Response, Server};
+//! use keiro::prelude::*;
+//! use keiro::Router;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut router = Router::new();
+//!     router.get("/", index);
+//!     router.get("/hello/:user1/from/:user2", hello);
+//!     router.get("/hi/*path", hi);
+//!     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+//!
+//!     Server::bind(&addr)
+//!         .serve(router.into_service())
+//!         .await
+//!         .unwrap();
+//! }
+//!
+//! async fn index(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     Ok(Response::new(Body::from("Hello keiro!")))
+//! }
+//!
+//! async fn hello(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     let params = req.params().unwrap();
+//!     Ok(Response::new(Body::from(format!(
+//!         "Hello {} from {}!",
+//!         params.find("user1").unwrap(),
+//!         params.find("user2").unwrap(),
+//!     ))))
+//! }
+//!
+//! async fn hi(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     let params = req.params().unwrap();
+//!     Ok(Response::new(Body::from(format!(
+//!         "Hello {}!",
+//!         params.find("path").unwrap(),
+//!     ))))
+//! }
+//! ```
+//!
+//! ### Routing
+//!
+//! Keiro uses [`route-recognier`](https://github.com/http-rs/route-recognizer) and supports
+//! four kinds of route segments:
+//! - segments: these are of the format `/a/b`.
+//! - params: these are of the format `/a/:b`.
+//! - named wildcards: these are of the format `/a/*b`.
+//! - unnamed wildcards: these are of the format `/a/*`.
+//!
+//! ### Middleware
+//!
+//! [`tower-http`](https://github.com/tower-rs/tower-http) supports useful middelwares and Keiro can use them.
+//! ```rust,no_run
+//! use std::convert::Infallible;
+//! use std::net::SocketAddr;
+//!
+//! use hyper::{Body, Request, Response, Server};
+//! use keiro::prelude::*;
+//! use keiro::{Params, Router};
+//! use tower::{make::Shared, ServiceBuilder};
+//! use tower_http::trace::TraceLayer;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut router = Router::new();
+//!     router.get("/", index);
+//!     let svc = keiro::RouterService::new(router);
+//!
+//!     tracing_subscriber::fmt::init();
+//!     let service = ServiceBuilder::new()
+//!         .layer(TraceLayer::new_for_http())
+//!         .service(svc);
+//!
+//!     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+//!
+//!     Server::bind(&addr)
+//!         .serve(Shared::new(service))
+//!         .await
+//!         .unwrap();
+//! }
+//!
+//! async fn index(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     Ok(Response::new(Body::from("Hello keiro!")))
+//! }
+//! ```
+//!
+//! ### Not found handler
+//!
+//! To handle requests which couldn't be matched by Keiro, `not_found` handler can be used.
+//! ```rust,no_run
+//! use std::convert::Infallible;
+//! use std::net::SocketAddr;
+//!
+//! use hyper::{Body, Request, Response, Server};
+//! use keiro::Router;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut router = Router::new();
+//!     router.get("/", index);
+//!     router.not_found(not_found);
+//!     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+//!
+//!     Server::bind(&addr)
+//!         .serve(router.into_service())
+//!         .await
+//!         .unwrap();
+//! }
+//!
+//! async fn index(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     Ok(Response::new(Body::from("Hello keiro!")))
+//! }
+//!
+//! async fn not_found(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     let response = Response::builder()
+//!         .status(404)
+//!         .body(Body::from("Not Found!"))
+//!         .unwrap();
+//!     Ok(response)
+//! }
+//! ```
+//!
+//! ### Share states
+//!
+//! Handler can use share states.
+//! ```rust,no_run
+//! use std::convert::Infallible;
+//! use std::net::SocketAddr;
+//!
+//! use hyper::{Body, Request, Response, Server};
+//! use keiro::prelude::*;
+//! use keiro::Router;
+//!
+//! #[derive(Clone)]
+//! struct State {
+//!     name: String,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let state = State {
+//!         name: "giraffate".to_string(),
+//!     };
+//!     let mut router = Router::with_state(state);
+//!     router.get("/", index);
+//!     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+//!
+//!     Server::bind(&addr)
+//!         .serve(router.into_service())
+//!         .await
+//!         .unwrap();
+//! }
+//!
+//! async fn index(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+//!     let state = req.state::<State>().unwrap();
+//!     Ok(Response::new(Body::from(format!("Hello {}", state.name))))
+//! }
+//! ```
+
 pub mod ext;
 pub mod prelude;
 
