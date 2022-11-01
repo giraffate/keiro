@@ -29,3 +29,5 @@ jobs:
         cargo clippy --workspace -- -D clippy::all
     - name: clippy-action
       uses: giraffate/clippy-action@main
+      with:
+        reporter: 'github-check'
