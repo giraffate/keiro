@@ -27,3 +27,5 @@ jobs:
       run: |
         rustup component add clippy
         cargo clippy --workspace -- -D clippy::all
+    - name: clippy-action
+      uses: giraffate/clippy-action@main
