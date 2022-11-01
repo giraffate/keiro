@@ -190,7 +190,7 @@ where
     E: Into<Box<dyn Error + Send + Sync>> + 'static,
 {
     fn default() -> Self {
-        let b = 0;
+        let a = 0;
         Self::new()
     }
 }
