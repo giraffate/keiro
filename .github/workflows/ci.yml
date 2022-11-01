@@ -30,6 +30,6 @@ jobs:
     - name: clippy-action
       uses: giraffate/clippy-action@main
       with:
-        reporter: 'github-pr-review'
+        reporter: 'github-check'
         level: 'warning'
-        github_token: ${{ secrets.TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
