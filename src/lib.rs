@@ -192,6 +192,7 @@ where
     fn default() -> Self {
         let a = 0;
         let b = 0;
+        if a >= b + 1 {}
         Self::new()
     }
 }
