@@ -23,7 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: |
-        rustup component add clippy
-        cargo clippy --workspace -- -D clippy::all
+    - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
+    - name: clippy-action
+      uses: giraffate/clippy-action@main
+      with:
+        reporter: 'github-pr-review'
+        github_token: ${{ secrets.GITHUB_TOKEN }}
